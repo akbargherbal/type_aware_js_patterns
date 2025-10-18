@@ -1,0 +1,37 @@
+{
+  "name": "type-aware-js-pattern-mining",
+  "version": "1.0.0",
+  "description": "Type-aware JavaScript/TypeScript code pattern mining using TypeScript Compiler API",
+  "main": "src/type_pattern_analyzer/ts_scripts/type_transform_poc.ts",
+  "type": "commonjs",
+  "scripts": {
+    "transform": "ts-node src/type_pattern_analyzer/ts_scripts/type_transform_poc.ts",
+    "validate": "ts-node src/type_pattern_analyzer/ts_scripts/poc_validation.ts",
+    "test:transform": "ts-node src/type_pattern_analyzer/ts_scripts/type_transform_poc.ts sample_app.js converted_output.js"
+  },
+  "keywords": [
+    "typescript",
+    "code-analysis",
+    "pattern-mining",
+    "ast",
+    "compiler-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
+}

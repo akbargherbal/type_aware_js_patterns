@@ -51,12 +51,12 @@ class StateManager:
             DataFrame with initialized queue
         """
         if self.queue_exists() and not force:
-            print(f"âœ… Queue already exists: {self.repo_queue_file}")
+            print(f"✓ Queue already exists: {self.repo_queue_file}")
             print("   Use force=True to recreate")
             return self.load_queue()
 
         if not self.repo_links_file.exists():
-            raise FileNotFoundError(f"❌ Input file not found: {self.repo_links_file}")
+            raise FileNotFoundError(f"✗ Input file not found: {self.repo_links_file}")
 
         # Load repo links
         print(f"📂 Loading repo links from {self.repo_links_file}...")
@@ -64,7 +64,7 @@ class StateManager:
 
         # Validate structure
         if "REPO" not in df_links.columns:
-            raise ValueError("❌ Input DataFrame must have 'REPO' column")
+            raise ValueError("✗ Input DataFrame must have 'REPO' column")
 
         # Extract repo names from URLs
         def extract_name(url):
@@ -83,6 +83,10 @@ class StateManager:
                 "status": "pending",
                 "attempt_count": 0,
                 "last_attempt": pd.NaT,
+                # Type transformation stats (NEW)
+                "type_coverage_pct": pd.NA,
+                "typed_files_count": pd.NA,
+                "transform_errors": pd.NA,
                 # Mining stats (filled after processing)
                 "files_processed": pd.NA,
                 "files_skipped": pd.NA,
@@ -108,7 +112,7 @@ class StateManager:
     def load_queue(self) -> pd.DataFrame:
         """Load queue from disk."""
         if not self.queue_exists():
-            raise FileNotFoundError(f"❌ Queue not found: {self.repo_queue_file}")
+            raise FileNotFoundError(f"✗ Queue not found: {self.repo_queue_file}")
 
         return pd.read_pickle(self.repo_queue_file)
 
@@ -154,11 +158,28 @@ class StateManager:
         Args:
             df_queue: Queue DataFrame
             repo_url: Repository URL
-            stats: Dictionary with mining statistics
+            stats: Dictionary with mining statistics including:
+                - type_coverage_pct: % of variables typed (float)
+                - typed_files_count: Number of files successfully transformed (int)
+                - transform_errors: Number of files that failed transformation (int)
+                - files_processed: Number of files analyzed for patterns (int)
+                - files_skipped: Number of files skipped during pattern extraction (int)
+                - parse_errors: Number of parse errors during pattern extraction (int)
+                - skip_reasons: Dictionary of skip reasons (dict)
+                - patterns_extracted: Number of unique patterns found (int)
+                - total_frequency: Total pattern frequency (int)
+                - duration: Processing time in seconds (float)
         """
         mask = df_queue["url"] == repo_url
 
         df_queue.loc[mask, "status"] = "completed"
+
+        # Type transformation stats (NEW)
+        df_queue.loc[mask, "type_coverage_pct"] = stats.get("type_coverage_pct", pd.NA)
+        df_queue.loc[mask, "typed_files_count"] = stats.get("typed_files_count", 0)
+        df_queue.loc[mask, "transform_errors"] = stats.get("transform_errors", 0)
+
+        # Pattern mining stats
         df_queue.loc[mask, "files_processed"] = stats.get("files_processed", 0)
         df_queue.loc[mask, "files_skipped"] = stats.get("files_skipped", 0)
         df_queue.loc[mask, "parse_errors"] = stats.get("parse_errors", 0)
@@ -190,7 +211,7 @@ class StateManager:
             # Give up
             df_queue.loc[mask, "status"] = "failed"
             df_queue.loc[mask, "error_message"] = error[:500]  # Truncate
-            print(f"   ❌ Failed after {max_attempts} attempts")
+            print(f"   ✗ Failed after {max_attempts} attempts")
 
         self.save_queue(df_queue)
 
@@ -266,6 +287,39 @@ class StateManager:
             "processing": status_counts.get("processing", 0),
         }
 
+    def get_transform_stats_summary(self) -> Dict[str, Any]:
+        """
+        Get summary statistics for type transformation across all completed repos.
+
+        Returns:
+            Dictionary with aggregate type transformation metrics
+        """
+        df_queue = self.load_queue()
+        completed = df_queue[df_queue["status"] == "completed"]
+
+        if len(completed) == 0:
+            return {
+                "repos_completed": 0,
+                "avg_type_coverage_pct": 0.0,
+                "total_typed_files": 0,
+                "total_transform_errors": 0,
+                "repos_below_threshold": 0,
+            }
+
+        # Calculate statistics
+        threshold = self.config.get("type_coverage_threshold", 30)
+        below_threshold = (completed["type_coverage_pct"] < threshold).sum()
+
+        return {
+            "repos_completed": len(completed),
+            "avg_type_coverage_pct": completed["type_coverage_pct"].mean(),
+            "median_type_coverage_pct": completed["type_coverage_pct"].median(),
+            "total_typed_files": completed["typed_files_count"].sum(),
+            "total_transform_errors": completed["transform_errors"].sum(),
+            "repos_below_threshold": int(below_threshold),
+            "threshold_pct": threshold,
+        }
+
     def create_backup(self) -> Path:
         """
         Create timestamped backup of repo_queue.pkl
@@ -274,7 +328,7 @@ class StateManager:
             Path to backup file
         """
         if not self.queue_exists():
-            raise FileNotFoundError("❌ No queue to backup")
+            raise FileNotFoundError("✗ No queue to backup")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = self.backup_dir / f"repo_queue_backup_{timestamp}.pkl"
@@ -296,7 +350,7 @@ class StateManager:
         mask = df_queue["url"] == repo_url
 
         if not mask.any():
-            raise ValueError(f"❌ Repo not found: {repo_url}")
+            raise ValueError(f"✗ Repo not found: {repo_url}")
 
         df_queue.loc[mask, "status"] = "pending"
         df_queue.loc[mask, "attempt_count"] = 0

@@ -1,0 +1,115 @@
+aggregation_min_repo_count: 2
+aggregation_min_total_frequency: 5
+backup_dir: ./data/backups
+checkpoint_dir: ./data/checkpoints
+checkpoint_frequency: 10
+clone_depth: 1
+clone_timeout_sec: 300
+data_dir: ./data
+dry_run: false
+enable_type_inference: true
+export_top_k: 200
+logs_dir: ./logs
+max_examples_per_pattern: 5
+max_file_size_mb: 2.0
+max_patterns_per_repo: 10000
+max_repos: null
+max_transform_errors: 10
+min_pattern_frequency: 2
+node_executable: node
+pattern_categories:
+  ARRAY_METHODS:
+  - map
+  - filter
+  - forEach
+  - reduce
+  - find
+  - findIndex
+  - some
+  - every
+  - includes
+  ARRAY_MUTATION:
+  - push
+  - pop
+  - shift
+  - unshift
+  - splice
+  - sort
+  - reverse
+  ASYNC_PATTERNS:
+  - async
+  - await
+  - fetch
+  CONSOLE_METHODS:
+  - log
+  - error
+  - warn
+  - info
+  - debug
+  DOM_CREATION:
+  - createElement
+  - createTextNode
+  - createDocumentFragment
+  DOM_EVENTS:
+  - addEventListener
+  - removeEventListener
+  - dispatchEvent
+  DOM_MANIPULATION:
+  - appendChild
+  - removeChild
+  - insertBefore
+  - replaceChild
+  - innerHTML
+  - textContent
+  - innerText
+  DOM_QUERIES:
+  - getElementById
+  - querySelector
+  - querySelectorAll
+  - getElementsByClassName
+  - getElementsByTagName
+  OBJECT_METHODS:
+  - keys
+  - values
+  - entries
+  - assign
+  - freeze
+  - seal
+  PROMISE_METHODS:
+  - then
+  - catch
+  - finally
+  - all
+  - race
+  - resolve
+  - reject
+  STRING_METHODS:
+  - split
+  - trim
+  - toLowerCase
+  - toUpperCase
+  - substring
+  - slice
+  - replace
+  - match
+pattern_extraction_method: regex
+pattern_file_extensions:
+- .js
+- .jsx
+- .ts
+- .tsx
+patterns_dir: ./data/typed_patterns_by_repo
+repo_links_file: ./data/DF_REPO_LINKS.pkl
+repo_queue_file: ./data/repo_queue.pkl
+results_dir: ./results
+retry_attempts: 3
+save_intermediate_files: false
+stuck_timeout_hours: 2
+temp_dir: ./temp
+transform_timeout_sec: 60
+transform_workers: 5
+ts_node_executable: ts-node
+ts_script_path: ./src/type_pattern_analyzer/ts_scripts/type_transform_poc.ts
+type_coverage_threshold: 30
+typed_output_subdir: _typed
+verbose_logging: false

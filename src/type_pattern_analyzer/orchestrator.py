@@ -1,3 +1,8 @@
+"""
+Orchestrator - Updated for Type-Aware Pattern Mining (Session 3)
+Main controller for the repository processing pipeline
+"""
+
 import time
 from pathlib import Path
 import yaml
@@ -5,7 +10,8 @@ import pandas as pd
 
 from .state_manager import StateManager
 from .repo_cloner import RepoCloner
-from .pattern_miner_wrapper import mine_repository_to_dataframe
+from .type_transformer import TypeTransformer
+from .pattern_extractor import PatternExtractor
 
 
 class Orchestrator:
@@ -19,6 +25,13 @@ class Orchestrator:
 
         self.state = StateManager(config_path)
         self.cloner = RepoCloner(self.config)
+        
+        # NEW: Initialize type transformer and pattern extractor
+        self.transformer = TypeTransformer(self.config)
+        self.extractor = PatternExtractor(self.config)
+        
+        # Check if type inference is enabled
+        self.enable_type_inference = self.config.get("enable_type_inference", True)
 
         # Ensure the queue is initialized
         if not self.state.queue_exists():
@@ -28,6 +41,7 @@ class Orchestrator:
     def run(self):
         """Run the main processing loop."""
         print("Starting orchestration process...")
+        print(f"Type inference: {'ENABLED' if self.enable_type_inference else 'DISABLED'}")
 
         # Recover any jobs that got stuck from a previous run
         self.state.recover_stuck_repos()
@@ -56,7 +70,7 @@ class Orchestrator:
                 self.state.create_backup()
 
     def _process_repo(self, repo_info: pd.Series):
-        """Process a single repository."""
+        """Process a single repository with type transformation."""
         repo_id = repo_info["repo_id"]
         repo_url = repo_info["url"]
         repo_name = repo_info["name"]
@@ -75,30 +89,62 @@ class Orchestrator:
 
         try:
             # 2. Clone repository
-            print(f"Cloning repository...")
+            print(f"🔄 Cloning repository...")
             repo_path, error = self.cloner.clone(repo_url, repo_id)
             if error:
                 raise RuntimeError(f"Clone failed: {error}")
-            print(f"Cloned successfully to {repo_path}")
+            print(f"✅ Cloned successfully to {repo_path}")
 
-            # 3. Mine patterns
-            print("Mining patterns...")
-            df_patterns, stats = mine_repository_to_dataframe(
-                repo_path,
-                max_file_size_mb=self.config.get("max_file_size_mb", 2.0),
-                min_freq=self.config.get("min_pattern_frequency", 2),
+            # 3. NEW: Type transformation step
+            transform_result = None
+            typed_repo_dir = None
+            
+            if self.enable_type_inference:
+                print(f"🔧 Transforming code with type inference...")
+                transform_result = self.transformer.transform_repository(repo_path)
+                
+                print(f"   Files transformed: {transform_result.files_typed}/{transform_result.files_attempted}")
+                print(f"   Type coverage: {transform_result.avg_coverage_pct:.1f}%")
+                
+                # Check if we should skip this repo
+                should_skip, reason = self.transformer.should_skip_repo(transform_result)
+                if should_skip:
+                    print(f"⚠️  Skipping repo: {reason}")
+                    raise RuntimeError(f"Type coverage too low: {reason}")
+                
+                typed_repo_dir = Path(transform_result.typed_output_dir)
+            else:
+                # Skip transformation, use original repo
+                print(f"⚠️  Type inference disabled, using original code")
+                typed_repo_dir = repo_path
+
+            # 4. Extract patterns (from typed code if transformed)
+            print("🔍 Extracting patterns...")
+            df_patterns, stats = self.extractor.extract_from_repository(
+                typed_repo_dir=typed_repo_dir,
+                repo_path=repo_path
             )
+            
             duration = time.time() - start_time
             stats["duration"] = duration
-            print(
-                f"Mining complete in {duration:.2f}s. Found {len(df_patterns)} unique patterns."
-            )
+            
+            # Add type transformation stats to stats dict
+            if transform_result:
+                stats["type_coverage_pct"] = transform_result.avg_coverage_pct
+                stats["typed_files_count"] = transform_result.files_typed
+                stats["transform_errors"] = transform_result.files_failed
+            else:
+                stats["type_coverage_pct"] = 0.0
+                stats["typed_files_count"] = 0
+                stats["transform_errors"] = 0
+            
+            print(f"✅ Pattern extraction complete in {duration:.2f}s. Found {len(df_patterns)} unique patterns.")
 
-            # 4. Save patterns
+            # 5. Save patterns
             self.state.save_repo_patterns(repo_id, repo_name, df_patterns)
-            print(f"Patterns saved for {repo_name}")
+            print(f"💾 Patterns saved for {repo_name}")
 
-            # 5. Mark as completed
+            # 6. Mark as completed
             df_queue = self.state.load_queue()
             self.state.mark_completed(df_queue, repo_url, stats)
             print(f"✅ Successfully processed {repo_name}")
@@ -110,9 +156,9 @@ class Orchestrator:
             self.state.mark_failed(df_queue, repo_url, str(e))
 
         finally:
-            # 6. Cleanup
+            # 7. Cleanup
             if repo_path:
-                print(f"Cleaning up {repo_path}...")
+                print(f"🧹 Cleaning up {repo_path}...")
                 success, error = self.cloner.cleanup(repo_path)
                 if not success:
                     print(f"⚠️  Cleanup failed for {repo_path}: {error}")

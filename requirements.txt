@@ -1,0 +1,32 @@
+# Type-Aware JavaScript Pattern Mining - Python Dependencies
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Configuration management
+PyYAML>=6.0
+
+# For parallel processing (optional but recommended)
+joblib>=1.3.0
+
+# For improved DataFrame performance
+pyarrow>=12.0.0  # Enables Parquet file format
+
+# Development & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code quality
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Logging (optional - for better log formatting)
+colorlog>=6.7.0
+
+# Progress bars (optional - for better UX during long operations)
+tqdm>=4.66.0
+
+# Note: tree-sitter is NOT needed (we're using regex for pattern extraction)
+# Note: No TypeScript dependencies here - those are in package.json
