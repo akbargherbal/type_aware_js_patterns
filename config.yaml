@@ -1,115 +1,85 @@
-aggregation_min_repo_count: 2
-aggregation_min_total_frequency: 5
-backup_dir: ./data/backups
-checkpoint_dir: ./data/checkpoints
-checkpoint_frequency: 10
-clone_depth: 1
-clone_timeout_sec: 300
+# ===================================================================
+# Main Configuration for Type-Aware Pattern Mining
+# ===================================================================
+
+# NEW: Directory containing pre-cloned repositories
+# ---
+# This is now the primary input for the pipeline. The orchestrator will
+# scan this directory to find repositories to process.
+local_repos_dir: /home/akbar/Desktop/MY_PROJECTS/GH_REPOS/list_of_repos
+
+# Data and Logging Directories
+# ---
 data_dir: ./data
-dry_run: false
-enable_type_inference: true
-export_top_k: 200
-logs_dir: ./logs
-max_examples_per_pattern: 5
-max_file_size_mb: 2.0
-max_patterns_per_repo: 10000
-max_repos: null
-max_transform_errors: 10
-min_pattern_frequency: 2
-node_executable: node
-pattern_categories:
-  ARRAY_METHODS:
-  - map
-  - filter
-  - forEach
-  - reduce
-  - find
-  - findIndex
-  - some
-  - every
-  - includes
-  ARRAY_MUTATION:
-  - push
-  - pop
-  - shift
-  - unshift
-  - splice
-  - sort
-  - reverse
-  ASYNC_PATTERNS:
-  - async
-  - await
-  - fetch
-  CONSOLE_METHODS:
-  - log
-  - error
-  - warn
-  - info
-  - debug
-  DOM_CREATION:
-  - createElement
-  - createTextNode
-  - createDocumentFragment
-  DOM_EVENTS:
-  - addEventListener
-  - removeEventListener
-  - dispatchEvent
-  DOM_MANIPULATION:
-  - appendChild
-  - removeChild
-  - insertBefore
-  - replaceChild
-  - innerHTML
-  - textContent
-  - innerText
-  DOM_QUERIES:
-  - getElementById
-  - querySelector
-  - querySelectorAll
-  - getElementsByClassName
-  - getElementsByTagName
-  OBJECT_METHODS:
-  - keys
-  - values
-  - entries
-  - assign
-  - freeze
-  - seal
-  PROMISE_METHODS:
-  - then
-  - catch
-  - finally
-  - all
-  - race
-  - resolve
-  - reject
-  STRING_METHODS:
-  - split
-  - trim
-  - toLowerCase
-  - toUpperCase
-  - substring
-  - slice
-  - replace
-  - match
-pattern_extraction_method: regex
-pattern_file_extensions:
-- .js
-- .jsx
-- .ts
-- .tsx
 patterns_dir: ./data/typed_patterns_by_repo
-repo_links_file: ./data/DF_REPO_LINKS.pkl
 repo_queue_file: ./data/repo_queue.pkl
 results_dir: ./results
-retry_attempts: 3
-save_intermediate_files: false
-stuck_timeout_hours: 2
-temp_dir: ./temp
-transform_timeout_sec: 60
-transform_workers: 5
+logs_dir: ./logs
+backup_dir: ./data/backups
+checkpoint_dir: ./data/checkpoints
+
+# Type Inference Settings
+# ---
+enable_type_inference: true
 ts_node_executable: ts-node
 ts_script_path: ./src/type_pattern_analyzer/ts_scripts/type_transform_poc.ts
-type_coverage_threshold: 30
-typed_output_subdir: _typed
+transform_workers: 5
+transform_timeout_sec: 60
+typed_output_subdir: _typed # Subdirectory for transformed files within each repo folder
+
+# Pattern Extraction Settings
+# ---
+pattern_extraction_method: regex
+pattern_file_extensions:
+  - .js
+  - .jsx
+  - .ts
+  - .tsx
+min_pattern_frequency: 2
+max_file_size_mb: 2.0
+max_patterns_per_repo: 10000
+
+# Aggregation Settings
+# ---
+aggregation_min_repo_count: 2
+aggregation_min_total_frequency: 5
+export_top_k: 200
+max_examples_per_pattern: 5
+
+# Orchestrator Settings
+# ---
+max_repos: null # Set to a number (e.g., 10) for testing, or null to run all
+retry_attempts: 3
+stuck_timeout_hours: 2
+checkpoint_frequency: 10
+type_coverage_threshold: 30 # Repos below this % coverage will be skipped
+max_transform_errors: 10 # Max number of file transform errors before skipping repo
+
+# General Settings
+# ---
+dry_run: false
 verbose_logging: false
+save_intermediate_files: false
+node_executable: node
+
+# DEPRECATED: These settings are no longer used in the local processing workflow
+# ---
+# repo_links_file: ./data/DF_REPO_LINKS.pkl
+# clone_depth: 1
+# clone_timeout_sec: 300
+# temp_dir: ./temp
+
+# Pattern Categories (for classification)
+# ---
+pattern_categories:
+  ARRAY_METHODS: [map, filter, forEach, reduce, find, findIndex, some, every, includes]
+  ARRAY_MUTATION: [push, pop, shift, unshift, splice, sort, reverse]
+  ASYNC_PATTERNS: [async, await, fetch]
+  CONSOLE_METHODS: [log, error, warn, info, debug]
+  DOM_CREATION: [createElement, createTextNode, createDocumentFragment]
+  DOM_EVENTS: [addEventListener, removeEventListener, dispatchEvent]
+  DOM_MANIPULATION: [appendChild, removeChild, insertBefore, replaceChild, innerHTML, textContent, innerText]
+  DOM_QUERIES: [getElementById, querySelector, querySelectorAll, getElementsByClassName, getElementsByTagName]
+  OBJECT_METHODS: [keys, values, entries, assign, freeze, seal]
+  PROMISE_METHODS: [then, catch, finally, all, race, resolve, reject]
+  STRING_METHODS: [split, trim, toLowerCase, toUpperCase, substring, slice, replace, match]
