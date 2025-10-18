@@ -55,6 +55,8 @@ ENV/
 env.bak/
 venv.bak/
 node_modules/
+
+
 # IDEs
 .vscode/
 .idea/
